@@ -250,11 +250,9 @@ const CrearSolicitud = ({ onCreada }) => {
                             onFocus={e => e.currentTarget.style.borderColor = '#0284c7'}
                             onBlur={e => e.currentTarget.style.borderColor = '#e5e7eb'}
                         >
-                            <option value="1">1 - Baja</option>
-                            <option value="2">2</option>
-                            <option value="3">3 - Media</option>
-                            <option value="4">4</option>
-                            <option value="5">5 - Alta</option>
+                            <option value="1"> Baja </option>
+                            <option value="2"> Media </option>
+                            <option value="3"> Alta </option>
                         </select>
                     </div>
 

@@ -6,6 +6,8 @@ const TodosUsuarios = () => {
     const [loading, setLoading] = useState(true);
     const [editandoId, setEditandoId] = useState(null);
     const [editForm, setEditForm] = useState({});
+    const [modalImagen, setModalImagen] = useState(false);
+    const [verificacionActual, setVerificacionActual] = useState(null);
 
     useEffect(() => {
         cargarUsuarios();
@@ -67,6 +69,30 @@ const TodosUsuarios = () => {
         }
     };
 
+    const verEvidencia = async (usuario) => {
+        try {
+
+            const res = await api.get(
+                `/admin/verificacion-pobreza/usuario/${usuario.id}`
+            );
+
+            setVerificacionActual({
+                usuario,
+                ...res.data
+            });
+
+            setModalImagen(true);
+
+        } catch (error) {
+
+            alert(
+                error?.response?.data ||
+                'No existe verificación SISFOH'
+            );
+
+        }
+    };
+
     if (loading) return <div style={{ textAlign: 'center', padding: 40 }}>Cargando usuarios...</div>;
 
     return (
@@ -80,92 +106,207 @@ const TodosUsuarios = () => {
                             <th style={{ padding: 12, textAlign: 'left' }}>Email</th>
                             <th style={{ padding: 12, textAlign: 'left' }}>Rol</th>
                             <th style={{ padding: 12, textAlign: 'left' }}>Estado</th>
-                            <th style={{ padding: 12, textAlign: 'left' }}>Acciones</th>
+                            <th style={{ padding: 12, textAlign: 'left' }}>verificacion</th>
                         </tr>
                     </thead>
                     <tbody>
                         {usuarios.map(usuario => (
-                            <tr key={usuario.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                                <td style={{ padding: 12 }}>{usuario.id}</td>
-                                <td style={{ padding: 12 }}>
+                            <tr
+                                key={usuario.id}
+                                style={{
+                                    borderBottom: '1px solid #e5e7eb',
+                                    transition: 'all .2s'
+                                }}
+                            >
+                                <td style={{ padding: 14, fontWeight: 600 }}>
+                                    #{usuario.id}
+                                </td>
+
+                                <td style={{ padding: 14 }}>
                                     {editandoId === usuario.id ? (
                                         <input
                                             value={editForm.nombre}
-                                            onChange={e => setEditForm({ ...editForm, nombre: e.target.value })}
-                                            style={{ width: '100%', padding: 6 }}
+                                            onChange={(e) =>
+                                                setEditForm({
+                                                    ...editForm,
+                                                    nombre: e.target.value
+                                                })
+                                            }
+                                            style={{
+                                                width: '100%',
+                                                padding: 10,
+                                                borderRadius: 8,
+                                                border: '1px solid #d1d5db'
+                                            }}
                                         />
                                     ) : (
                                         usuario.nombre || '—'
                                     )}
                                 </td>
-                                <td style={{ padding: 12 }}>
+
+                                <td style={{ padding: 14 }}>
                                     {editandoId === usuario.id ? (
                                         <input
                                             value={editForm.email}
-                                            onChange={e => setEditForm({ ...editForm, email: e.target.value })}
-                                            style={{ width: '100%', padding: 6 }}
+                                            onChange={(e) =>
+                                                setEditForm({
+                                                    ...editForm,
+                                                    email: e.target.value
+                                                })
+                                            }
+                                            style={{
+                                                width: '100%',
+                                                padding: 10,
+                                                borderRadius: 8,
+                                                border: '1px solid #d1d5db'
+                                            }}
                                         />
                                     ) : (
                                         usuario.email
                                     )}
                                 </td>
-                                <td style={{ padding: 12 }}>
-                                    {editandoId === usuario.id ? (
-                                        <select
-                                            value={editForm.tipoUsuario}
-                                            onChange={e => setEditForm({ ...editForm, tipoUsuario: e.target.value })}
-                                            style={{ width: '100%', padding: 6 }}
+
+                                <td style={{ padding: 14 }}>
+                                    <span
+                                        style={{
+                                            background:
+                                                usuario.tipoUsuario === 'admin'
+                                                    ? '#ede9fe'
+                                                    : usuario.tipoUsuario === 'ayudado'
+                                                        ? '#dbeafe'
+                                                        : '#dcfce7',
+                                            color: '#111827',
+                                            padding: '6px 12px',
+                                            borderRadius: 999,
+                                            fontSize: 12,
+                                            fontWeight: 600
+                                        }}
+                                    >
+                                        {usuario.tipoUsuario}
+                                    </span>
+                                </td>
+
+                                <td style={{ padding: 14 }}>
+                                    <span
+                                        style={{
+                                            background:
+                                                usuario.estado === 'activo'
+                                                    ? '#dcfce7'
+                                                    : usuario.estado === 'pendiente'
+                                                        ? '#fef3c7'
+                                                        : '#fee2e2',
+                                            color:
+                                                usuario.estado === 'activo'
+                                                    ? '#166534'
+                                                    : usuario.estado === 'pendiente'
+                                                        ? '#92400e'
+                                                        : '#991b1b',
+                                            padding: '6px 12px',
+                                            borderRadius: 999,
+                                            fontSize: 12,
+                                            fontWeight: 600
+                                        }}
+                                    >
+                                        {usuario.estado}
+                                    </span>
+                                </td>
+
+                                <td style={{ padding: 14 }}>
+                                    {usuario.tipoUsuario === 'ayudado' ? (
+                                        <button
+                                            onClick={() => verEvidencia(usuario)}
+                                            style={{
+                                                background: '#8b5cf6',
+                                                color: '#fff',
+                                                border: 'none',
+                                                borderRadius: 10,
+                                                padding: '8px 14px',
+                                                cursor: 'pointer',
+                                                fontWeight: 600
+                                            }}
                                         >
-                                            <option value="voluntario">Voluntario</option>
-                                            <option value="ayudado">Ayudado</option>
-                                            <option value="admin">Administrador</option>
-                                        </select>
+                                            Ver SISFOH
+                                        </button>
                                     ) : (
-                                        <span style={{
-                                            background: usuario.tipoUsuario === 'admin' ? '#ede9fe' : '#e0e7ff',
-                                            padding: '2px 8px',
-                                            borderRadius: 20,
-                                            fontSize: 12
-                                        }}>
-                                            {usuario.tipoUsuario}
-                                        </span>
+                                        <span style={{ color: '#9ca3af' }}>—</span>
                                     )}
                                 </td>
-                                <td style={{ padding: 12 }}>
+
+                                <td style={{ padding: 14 }}>
                                     {editandoId === usuario.id ? (
-                                        <select
-                                            value={editForm.estado}
-                                            onChange={e => setEditForm({ ...editForm, estado: e.target.value })}
-                                            style={{ width: '100%', padding: 6 }}
-                                        >
-                                            <option value="activo">Activo</option>
-                                            <option value="pendiente">Pendiente</option>
-                                            <option value="rechazado">Rechazado</option>
-                                        </select>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <button
+                                                onClick={() => guardarEdicion(usuario.id)}
+                                                style={{
+                                                    background: '#10b981',
+                                                    color: '#fff',
+                                                    border: 'none',
+                                                    padding: '8px 12px',
+                                                    borderRadius: 8,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Guardar
+                                            </button>
+
+                                            <button
+                                                onClick={cancelarEdicion}
+                                                style={{
+                                                    background: '#6b7280',
+                                                    color: '#fff',
+                                                    border: 'none',
+                                                    padding: '8px 12px',
+                                                    borderRadius: 8,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
                                     ) : (
-                                        <span style={{
-                                            background: usuario.estado === 'activo' ? '#dcfce7' :
-                                                usuario.estado === 'pendiente' ? '#fef9c3' : '#ffe4e4',
-                                            padding: '2px 8px',
-                                            borderRadius: 20,
-                                            fontSize: 12
-                                        }}>
-                                            {usuario.estado}
-                                        </span>
-                                    )}
-                                </td>
-                                <td style={{ padding: 12 }}>
-                                    {editandoId === usuario.id ? (
-                                        <>
-                                            <button onClick={() => guardarEdicion(usuario.id)} style={{ background: '#10b981', marginRight: 8 }}>Guardar</button>
-                                            <button onClick={cancelarEdicion} style={{ background: '#6b7280' }}>Cancelar</button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <button onClick={() => iniciarEdicion(usuario)} style={{ background: '#3b82f6', marginRight: 8 }}>Editar</button>
-                                            <button onClick={() => suspender(usuario.id)} style={{ background: '#f59e0b', marginRight: 8 }}>Suspender</button>
-                                            <button onClick={() => eliminar(usuario.id)} style={{ background: '#ef4444' }}>Eliminar</button>
-                                        </>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <button
+                                                onClick={() => iniciarEdicion(usuario)}
+                                                style={{
+                                                    background: '#2563eb',
+                                                    color: '#fff',
+                                                    border: 'none',
+                                                    padding: '8px 12px',
+                                                    borderRadius: 8,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Editar
+                                            </button>
+
+                                            <button
+                                                onClick={() => suspender(usuario.id)}
+                                                style={{
+                                                    background: '#f59e0b',
+                                                    color: '#fff',
+                                                    border: 'none',
+                                                    padding: '8px 12px',
+                                                    borderRadius: 8,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Suspender
+                                            </button>
+
+                                            <button
+                                                onClick={() => eliminar(usuario.id)}
+                                                style={{
+                                                    background: '#ef4444',
+                                                    color: '#fff',
+                                                    border: 'none',
+                                                    padding: '8px 12px',
+                                                    borderRadius: 8,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Eliminar
+                                            </button>
+                                        </div>
                                     )}
                                 </td>
                             </tr>
@@ -173,6 +314,119 @@ const TodosUsuarios = () => {
                     </tbody>
                 </table>
             </div>
+            {modalImagen && verificacionActual && (
+                <div
+                    onClick={() => setModalImagen(false)}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0,0,0,.75)',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        zIndex: 9999,
+                        padding: 20
+                    }}
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background: '#fff',
+                            borderRadius: 20,
+                            maxWidth: 1100,
+                            width: '95%',
+                            maxHeight: '90vh',
+                            overflowY: 'auto',
+                            boxShadow: '0 20px 50px rgba(0,0,0,.3)'
+                        }}
+                    >
+                        <div
+                            style={{
+                                padding: 20,
+                                borderBottom: '1px solid #e5e7eb',
+                                display: 'flex',
+                                justifyContent: 'space-between'
+                            }}
+                        >
+                            <div>
+                                <h2 style={{ margin: 0 }}>
+                                    Constancia SISFOH
+                                </h2>
+
+                                <p style={{ marginTop: 8, color: '#6b7280' }}>
+                                    {verificacionActual.usuario.nombre}
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => setModalImagen(false)}
+                                style={{
+                                    border: 'none',
+                                    background: '#f3f4f6',
+                                    borderRadius: 10,
+                                    width: 40,
+                                    height: 40,
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div style={{ padding: 24 }}>
+                            <div
+                                style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '1fr 1fr',
+                                    gap: 20,
+                                    marginBottom: 20
+                                }}
+                            >
+                                <div>
+                                    <strong>Nivel:</strong><br />
+                                    {verificacionActual.nivel}
+                                </div>
+
+                                <div>
+                                    <strong>Fecha:</strong><br />
+                                    {new Date(
+                                        verificacionActual.fechaVerificacion
+                                    ).toLocaleString()}
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: 20 }}>
+                                <strong>Observaciones</strong>
+
+                                <div
+                                    style={{
+                                        marginTop: 8,
+                                        padding: 12,
+                                        background: '#f9fafb',
+                                        borderRadius: 10
+                                    }}
+                                >
+                                    {verificacionActual.observaciones || 'Sin observaciones'}
+                                </div>
+                            </div>
+
+                            <img
+                                src={`http://localhost:8080/api/admin/verificacion-pobreza/imagen/${verificacionActual.usuario.id}`}
+                                alt="SISFOH"
+                                style={{
+                                    width: '100%',
+                                    maxHeight: '75vh',
+                                    objectFit: 'contain',
+                                    borderRadius: 14,
+                                    border: '1px solid #e5e7eb',
+                                    background: '#f9fafb',
+                                    display: 'block'
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

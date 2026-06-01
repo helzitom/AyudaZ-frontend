@@ -118,8 +118,7 @@ const Navbar = () => {
                             e.currentTarget.style.background = 'transparent';
                             e.currentTarget.style.color = '#4b5563';
                         }}>
-                            <FaClipboardList size={14} />
-                            Mis solicitudes
+                            
                         </Link>
                     )}
 

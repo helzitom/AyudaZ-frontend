@@ -6,6 +6,12 @@ const UsuariosPendientes = () => {
     const [loading, setLoading] = useState(true);
     const [ayudadoSeleccionado, setAyudadoSeleccionado] = useState(null);
     const [cargandoDetalle, setCargandoDetalle] = useState(false);
+    const [mostrarModalAprobacion, setMostrarModalAprobacion] = useState(false);
+    const [usuarioAprobar, setUsuarioAprobar] = useState(null);
+    const [imagen, setImagen] = useState(null);
+    const [nivel, setNivel] = useState('POBRE');
+    const [observaciones, setObservaciones] = useState('');
+    const [subiendo, setSubiendo] = useState(false);
 
     useEffect(() => {
         const fetchPendientes = async () => {
@@ -39,12 +45,64 @@ const UsuariosPendientes = () => {
 
     const cerrarModal = () => setAyudadoSeleccionado(null);
 
-    const aprobar = async (id) => {
+    const aprobar = (usuario) => {
+        setUsuarioAprobar(usuario);
+        setMostrarModalAprobacion(true);
+
+        setImagen(null);
+        setNivel('POBRE');
+        setObservaciones('');
+    };
+
+    const confirmarAprobacion = async () => {
         try {
-            await api.post(`/admin/aprobar/${id}`);
-            setPendientes(pendientes.filter(u => u.id !== id));
+            if (!imagen) {
+                alert('Debe subir una imagen de verificación');
+                return;
+            }
+
+            setSubiendo(true);
+
+            const formData = new FormData();
+            formData.append('imagen', imagen);
+            formData.append('nivel', nivel);
+            formData.append('observaciones', observaciones);
+
+            await api.post(
+                `/admin/verificacion-pobreza/${usuarioAprobar.id}`,
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                }
+            );
+
+            await api.post(`/admin/aprobar/${usuarioAprobar.id}`);
+
+            setPendientes((prev) =>
+                prev.filter((u) => u.id !== usuarioAprobar.id)
+            );
+
+            setMostrarModalAprobacion(false);
+            setUsuarioAprobar(null);
+            setImagen(null);
+            setObservaciones('');
+
+            alert('Usuario aprobado correctamente');
         } catch (error) {
-            console.error('Error al aprobar:', error);
+            console.error('ERROR COMPLETO:', error);
+            console.error('RESPONSE:', error.response);
+            console.error('DATA:', error.response?.data);
+
+            const mensaje =
+                typeof error.response?.data === 'string'
+                    ? error.response.data
+                    : JSON.stringify(error.response?.data, null, 2);
+
+            alert(mensaje);
+        } finally {
+            setSubiendo(false);
         }
     };
 
@@ -91,7 +149,17 @@ const UsuariosPendientes = () => {
                                         )}
                                     </div>
                                     <div style={{ display: 'flex', gap: 10 }}>
-                                        <button onClick={() => aprobar(usuario.id)} style={{ background: '#10b981', border: 'none', borderRadius: 8, padding: '6px 14px', color: 'white', cursor: 'pointer' }}>
+                                        <button
+                                            onClick={() => aprobar(usuario)}
+                                            style={{
+                                                background: '#10b981',
+                                                border: 'none',
+                                                borderRadius: 8,
+                                                padding: '6px 14px',
+                                                color: 'white',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
                                             Aprobar
                                         </button>
                                         <button onClick={() => eliminar(usuario.id)} style={{ background: '#ef4444', border: 'none', borderRadius: 8, padding: '6px 14px', color: 'white', cursor: 'pointer' }}>
@@ -107,23 +175,408 @@ const UsuariosPendientes = () => {
 
             {/* Modal con todos los campos de ayudado */}
             {ayudadoSeleccionado && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={cerrarModal}>
-                    <div style={{ background: 'white', borderRadius: 20, padding: 24, maxWidth: 500, width: '90%' }} onClick={e => e.stopPropagation()}>
-                        <h3>Datos del solicitante</h3>
-                        {cargandoDetalle ? <p>Cargando...</p> : (
-                            <div>
-                                <p><strong>Cónyuge:</strong> {ayudadoSeleccionado.nombreConyuge || '—'}</p>
-                                <p><strong>Fecha nacimiento:</strong> {ayudadoSeleccionado.fechaNacimientoConyuge || '—'}</p>
-                                <p><strong>Lugar nacimiento:</strong> {ayudadoSeleccionado.lugarNacimientoConyuge || '—'}</p>
-                                <p><strong>Integrantes:</strong> {ayudadoSeleccionado.cantidadIntegrantes || '—'}</p>
-                                <p><strong>Confirmado por admin:</strong> {ayudadoSeleccionado.confirmacionAdmin ? 'Sí' : 'No'}</p>
-                                <p><strong>Fecha confirmación:</strong> {ayudadoSeleccionado.fechaConfirmacion ? new Date(ayudadoSeleccionado.fechaConfirmacion).toLocaleString() : 'Pendiente'}</p>
-                                <p><strong>Observaciones:</strong> {ayudadoSeleccionado.observaciones || '—'}</p>
-                            </div>
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        backgroundColor: 'rgba(0,0,0,0.55)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000,
+                        padding: 20,
+                    }}
+                    onClick={cerrarModal}
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background: '#fff',
+                            borderRadius: 20,
+                            width: '100%',
+                            maxWidth: 650,
+                            maxHeight: '90vh',
+                            overflowY: 'auto',
+                            padding: 24,
+                            boxShadow: '0 20px 40px rgba(0,0,0,.2)',
+                        }}
+                    >
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: 20,
+                            }}
+                        >
+                            <h2
+                                style={{
+                                    margin: 0,
+                                    fontSize: 22,
+                                    fontWeight: 700,
+                                }}
+                            >
+                                Información del solicitante
+                            </h2>
+
+                            <button
+                                onClick={cerrarModal}
+                                style={{
+                                    border: 'none',
+                                    background: '#f3f4f6',
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: '50%',
+                                    cursor: 'pointer',
+                                    fontSize: 18,
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {cargandoDetalle ? (
+                            <p>Cargando...</p>
+                        ) : (
+                            <>
+                                {/* DATOS PERSONALES */}
+
+                                <div
+                                    style={{
+                                        background: '#f9fafb',
+                                        padding: 16,
+                                        borderRadius: 12,
+                                        marginBottom: 16,
+                                    }}
+                                >
+                                    <h3
+                                        style={{
+                                            marginTop: 0,
+                                            marginBottom: 12,
+                                            fontSize: 16,
+                                        }}
+                                    >
+                                        Datos personales
+                                    </h3>
+
+                                    <p>
+                                        <strong>Nombre:</strong>{' '}
+                                        {ayudadoSeleccionado.usuario?.nombre || '—'}
+                                    </p>
+
+                                    <p>
+                                        <strong>Correo:</strong>{' '}
+                                        {ayudadoSeleccionado.usuario?.email || '—'}
+                                    </p>
+
+
+                                </div>
+
+                                {/* DATOS FAMILIARES */}
+
+
+
+                                <div
+                                    style={{
+                                        background: '#f9fafb',
+                                        padding: 16,
+                                        borderRadius: 12,
+                                        marginBottom: 16,
+                                    }}
+                                >
+                                    <h3
+                                        style={{
+                                            marginTop: 0,
+                                            marginBottom: 12,
+                                            fontSize: 16,
+                                        }}
+                                    >
+                                        Información familiar
+                                    </h3>
+
+                                    <p>
+                                        <strong>DNI del cónyuge:</strong>{' '}
+                                        {ayudadoSeleccionado.dni || '—'}
+                                    </p>
+
+                                    <p>
+                                        <strong>Cónyuge:</strong>{' '}
+                                        {ayudadoSeleccionado.nombreConyuge || 'No registrado'}
+                                    </p>
+
+                                    <p>
+                                        <strong>Fecha nacimiento cónyuge:</strong>{' '}
+                                        {ayudadoSeleccionado.fechaNacimientoConyuge || '—'}
+                                    </p>
+
+                                    <p>
+                                        <strong>Lugar nacimiento cónyuge:</strong>{' '}
+                                        {ayudadoSeleccionado.lugarNacimientoConyuge || '—'}
+                                    </p>
+
+                                    <p>
+                                        <strong>Integrantes del hogar:</strong>{' '}
+                                        {ayudadoSeleccionado.cantidadIntegrantes || '—'}
+                                    </p>
+                                </div>
+
+                                {/* VALIDACIÓN */}
+
+                                <div
+                                    style={{
+                                        background: '#f9fafb',
+                                        padding: 16,
+                                        borderRadius: 12,
+                                    }}
+                                >
+                                    <h3
+                                        style={{
+                                            marginTop: 0,
+                                            marginBottom: 12,
+                                            fontSize: 16,
+                                        }}
+                                    >
+                                        Estado de validación
+                                    </h3>
+
+                                    <p>
+                                        <strong>Confirmado por administrador:</strong>{' '}
+                                        {ayudadoSeleccionado.confirmacionAdmin
+                                            ? 'Sí'
+                                            : 'No'}
+                                    </p>
+
+                                    <p>
+                                        <strong>Fecha de confirmación:</strong>{' '}
+                                        {ayudadoSeleccionado.fechaConfirmacion
+                                            ? new Date(
+                                                ayudadoSeleccionado.fechaConfirmacion
+                                            ).toLocaleString()
+                                            : 'Pendiente'}
+                                    </p>
+
+                                    <p>
+                                        <strong>Observaciones:</strong>{' '}
+                                        {ayudadoSeleccionado.observaciones || 'Sin observaciones'}
+                                    </p>
+                                </div>
+                            </>
                         )}
-                        <button onClick={cerrarModal} style={{ marginTop: 20, background: '#6b7280', border: 'none', borderRadius: 8, padding: '8px 16px', color: 'white', cursor: 'pointer' }}>
-                            Cerrar
-                        </button>
+                    </div>
+                </div>
+            )}
+            {mostrarModalAprobacion && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0,0,0,.6)',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        zIndex: 3000,
+                        padding: 20,
+                    }}
+                >
+                    <div
+                        style={{
+                            width: '100%',
+                            maxWidth: 700,
+                            background: '#fff',
+                            borderRadius: 20,
+                            padding: 24,
+                            maxHeight: '90vh',
+                            overflowY: 'auto',
+                        }}
+                    >
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: 20,
+                            }}
+                        >
+                            <h2 style={{ margin: 0 }}>
+                                Aprobar Ayudado
+                            </h2>
+
+                            <button
+                                onClick={() =>
+                                    setMostrarModalAprobacion(false)
+                                }
+                                style={{
+                                    border: 'none',
+                                    background: '#f3f4f6',
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: '50%',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div style={{ marginBottom: 20 }}>
+                            <label>
+                                Nivel socioeconómico
+                            </label>
+
+                            <select
+                                value={nivel}
+                                onChange={(e) =>
+                                    setNivel(e.target.value)
+                                }
+                                style={{
+                                    width: '100%',
+                                    marginTop: 8,
+                                    padding: 12,
+                                    borderRadius: 10,
+                                    border: '1px solid #d1d5db',
+                                }}
+                            >
+                                <option value="POBRE">
+                                    POBRE
+                                </option>
+
+                                <option value="EXTREMA_POBREZA">
+                                    EXTREMA POBREZA
+                                </option>
+                            </select>
+                        </div>
+
+                        <div style={{ marginBottom: 20 }}>
+                            <label>
+                                Evidencia obligatoria
+                            </label>
+
+                            <div
+                                onDragOver={(e) =>
+                                    e.preventDefault()
+                                }
+                                onDrop={(e) => {
+                                    e.preventDefault();
+
+                                    if (
+                                        e.dataTransfer.files &&
+                                        e.dataTransfer.files[0]
+                                    ) {
+                                        setImagen(
+                                            e.dataTransfer.files[0]
+                                        );
+                                    }
+                                }}
+                                style={{
+                                    marginTop: 10,
+                                    border: '2px dashed #cbd5e1',
+                                    borderRadius: 12,
+                                    padding: 40,
+                                    textAlign: 'center',
+                                }}
+                            >
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    id="imagenPobreza"
+                                    style={{ display: 'none' }}
+                                    onChange={(e) =>
+                                        setImagen(
+                                            e.target.files?.[0]
+                                        )
+                                    }
+                                />
+
+                                <label
+                                    htmlFor="imagenPobreza"
+                                    style={{
+                                        cursor: 'pointer',
+                                        display: 'block',
+                                    }}
+                                >
+                                    {imagen
+                                        ? imagen.name
+                                        : 'Arrastra una imagen aquí o haz clic para seleccionar'}
+                                </label>
+                            </div>
+                        </div>
+
+                        {imagen && (
+                            <img
+                                src={URL.createObjectURL(imagen)}
+                                alt="Vista previa"
+                                style={{
+                                    width: '100%',
+                                    maxHeight: 300,
+                                    objectFit: 'contain',
+                                    borderRadius: 12,
+                                    marginBottom: 20,
+                                }}
+                            />
+                        )}
+
+                        <div style={{ marginBottom: 20 }}>
+                            <label>
+                                Observaciones
+                            </label>
+
+                            <textarea
+                                value={observaciones}
+                                onChange={(e) =>
+                                    setObservaciones(
+                                        e.target.value
+                                    )
+                                }
+                                rows={5}
+                                style={{
+                                    width: '100%',
+                                    marginTop: 8,
+                                    padding: 12,
+                                    borderRadius: 10,
+                                    border: '1px solid #d1d5db',
+                                    resize: 'vertical',
+                                }}
+                            />
+                        </div>
+
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'flex-end',
+                                gap: 12,
+                            }}
+                        >
+                            <button
+                                onClick={() =>
+                                    setMostrarModalAprobacion(false)
+                                }
+                                style={{
+                                    padding: '10px 18px',
+                                    borderRadius: 10,
+                                    border: '1px solid #d1d5db',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
+                                disabled={subiendo}
+                                onClick={confirmarAprobacion}
+                                style={{
+                                    background: '#10b981',
+                                    color: '#fff',
+                                    border: 'none',
+                                    padding: '10px 18px',
+                                    borderRadius: 10,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                {subiendo
+                                    ? 'Guardando...'
+                                    : 'Guardar y Aprobar'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

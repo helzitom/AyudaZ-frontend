@@ -31,16 +31,61 @@ const VoluntarioDashboard = () => {
     }, []);
 
     const ofrecerAyuda = async (solicitudId, mensaje) => {
+
         try {
-            await api.post(`/solicitudes/${solicitudId}/ofrecer`, mensaje, {
-                headers: { 'Content-Type': 'text/plain' }
-            });
+
+            await api.post(
+                `/solicitudes/${solicitudId}/ofrecer`,
+                mensaje,
+                {
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    }
+                }
+            );
+
             alert('✅ Ofrecimiento enviado correctamente');
-            // Recargar solicitudes para actualizar el estado
+
+            // RECARGAR SOLICITUDES
+
             const res = await api.get('/solicitudes/activas');
+
             setSolicitudes(res.data || []);
+
         } catch (error) {
+
             console.error('Error al ofrecer ayuda:', error);
+
+            // MENSAJE DEL BACKEND
+
+            const mensajeError =
+                error?.response?.data?.message ||
+                error?.response?.data ||
+                '';
+
+            // VALIDAR SI YA POSTULÓ
+
+            if (
+                typeof mensajeError === 'string' &&
+                (
+                    mensajeError.toLowerCase().includes('ya') &&
+                    mensajeError.toLowerCase().includes('oferta')
+                )
+            ) {
+
+                alert('⚠️ Ya enviaste ayuda para esta solicitud');
+
+                // RECARGAR PARA ACTUALIZAR EL BOTÓN
+
+                const res = await api.get('/solicitudes/activas');
+
+                setSolicitudes(res.data || []);
+
+                return;
+            }
+
+            // ERROR GENERAL
+
             alert('❌ Error al enviar el ofrecimiento. Intenta nuevamente.');
         }
     };
@@ -64,13 +109,13 @@ const VoluntarioDashboard = () => {
         } else if (filtroEstado === "Completadas") {
             estadoOk = s.estado?.toLowerCase() === 'completada';
         }
-        
+
         // Filtro por categoría
         let categoriaOk = true;
         if (filtroCategoria !== "Todas") {
             categoriaOk = s.categoria?.toLowerCase() === filtroCategoria.toLowerCase();
         }
-        
+
         return estadoOk && categoriaOk;
     });
 
@@ -109,8 +154,8 @@ const VoluntarioDashboard = () => {
                             Panel de Voluntarios – Apoyo Comunitario
                         </p>
                         <p style={{ fontSize: 13, color: "#1d4ed8", lineHeight: 1.6 }}>
-                            Estas son las solicitudes activas de personas en situación de vulnerabilidad. 
-                            Puedes ofrecer tu ayuda en aquellas donde puedas colaborar. Cada aporte suma puntos en 
+                            Estas son las solicitudes activas de personas en situación de vulnerabilidad.
+                            Puedes ofrecer tu ayuda en aquellas donde puedas colaborar. Cada aporte suma puntos en
                             el ranking de solidaridad.
                         </p>
                     </div>
