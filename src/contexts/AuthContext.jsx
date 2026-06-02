@@ -55,12 +55,80 @@ export const AuthProvider = ({ children }) => {
 
     const loginWithGoogle = async () => {
         const result = await signInWithPopup(auth, googleProvider);
-        return result.user;
+
+        const firebaseUser = result.user;
+        const token = await firebaseUser.getIdToken();
+
+        try {
+            const response = await api.post(
+                '/auth/verify',
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            setBackendUser(response.data);
+
+            return {
+                email: firebaseUser.email,
+                tieneRol: !!response.data?.tipoUsuario,
+                tipoUsuario: response.data?.tipoUsuario,
+                estado: response.data?.estado
+            };
+
+        } catch (error) {
+
+            if (error.response?.status === 404) {
+                return {
+                    email: firebaseUser.email,
+                    tieneRol: false
+                };
+            }
+
+            throw error;
+        }
     };
 
     const loginWithFacebook = async () => {
         const result = await signInWithPopup(auth, facebookProvider);
-        return result.user;
+
+        const firebaseUser = result.user;
+        const token = await firebaseUser.getIdToken();
+
+        try {
+            const response = await api.post(
+                '/auth/verify',
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            setBackendUser(response.data);
+
+            return {
+                email: firebaseUser.email,
+                tieneRol: !!response.data?.tipoUsuario,
+                tipoUsuario: response.data?.tipoUsuario,
+                estado: response.data?.estado
+            };
+
+        } catch (error) {
+
+            if (error.response?.status === 404) {
+                return {
+                    email: firebaseUser.email,
+                    tieneRol: false
+                };
+            }
+
+            throw error;
+        }
     };
 
     const loginWithEmail = async (email, password) => {

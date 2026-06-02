@@ -39,9 +39,30 @@ const Login = () => {
 
     const handleGoogle = async () => {
         setLoading(true);
+
         try {
-            await loginWithGoogle();
+            const authData = await loginWithGoogle();
+
+            /*
+            authData ejemplo:
+            {
+                email: "correo@gmail.com",
+                tieneRol: false
+            }
+            */
+
+            if (!authData.tieneRol) {
+                navigate('/register', {
+                    state: {
+                        socialLogin: true,
+                        email: authData.email
+                    }
+                });
+                return;
+            }
+
             navigate('/dashboard');
+
         } catch (error) {
             alert('Error con Google: ' + error.message);
         } finally {
@@ -51,9 +72,22 @@ const Login = () => {
 
     const handleFacebook = async () => {
         setLoading(true);
+
         try {
-            await loginWithFacebook();
+            const authData = await loginWithFacebook();
+
+            if (!authData.tieneRol) {
+                navigate('/register', {
+                    state: {
+                        socialLogin: true,
+                        email: authData.email
+                    }
+                });
+                return;
+            }
+
             navigate('/dashboard');
+
         } catch (error) {
             alert('Error con Facebook: ' + error.message);
         } finally {

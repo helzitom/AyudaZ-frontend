@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import useAuth from '../../hooks/useAuth';
 import api from '../../services/api';
 import { auth } from '../../firebase';
+import { useLocation } from 'react-router-dom';
 
 // ── Componente auxiliar ───────────────────────────────────────────────────────
 const Campo = ({ label, error, children }) => (
@@ -24,43 +25,59 @@ const inputErrorStyle = { ...inputStyle, borderColor: '#fca5a5', background: '#f
 
 // ── Componente principal ──────────────────────────────────────────────────────
 const Register = () => {
-    const [step, setStep]       = useState('choice');
-    const [rol, setRol]         = useState(null);
+    const [step, setStep] = useState('choice');
+    const [rol, setRol] = useState(null);
     const [loading, setLoading] = useState(false);
-    const { registerWithEmail }  = useAuth();
-    const navigate               = useNavigate();
+    const { registerWithEmail } = useAuth();
+    const navigate = useNavigate();
+
+    const location = useLocation();
+    const socialLogin = location.state?.socialLogin || false;
+    const socialEmail = location.state?.email || '';
 
     const elegirRol = (selected) => { setRol(selected); setStep(selected); };
 
     // ── Formulario voluntario ──────────────────────────────────────────────
     const formVoluntario = useForm({
-        defaultValues: { nombre: '', email: '', password: '', confirmPassword: '' }
-    });
+        defaultValues: {
+            nombre: '',
+            email: socialEmail,
+            password: '',
+            confirmPassword: ''
+        }
+    });;
 
     // ── Formulario ayudado ─────────────────────────────────────────────────
     const formAyudado = useForm({
         defaultValues: {
-            nombre: '', email: '', password: '', confirmPassword: '',
+            nombre: '',
+            email: socialEmail,
+            password: '',
+            confirmPassword: '',
             dni: '',
-            nombreConyuge: '', fechaNacimientoConyuge: '',
-            lugarNacimientoConyuge: '', cantidadIntegrantes: 1,
+            nombreConyuge: '',
+            fechaNacimientoConyuge: '',
+            lugarNacimientoConyuge: '',
+            cantidadIntegrantes: 1,
         }
     });
 
     // ── Submit voluntario ──────────────────────────────────────────────────
     const submitVoluntario = async (data) => {
-        if (data.password !== data.confirmPassword) {
+        if (!socialLogin && data.password !== data.confirmPassword) {
             formVoluntario.setError('confirmPassword', { message: 'Las contraseñas no coinciden' });
             return;
         }
         setLoading(true);
         try {
-            await registerWithEmail(data.email, data.password);
+            if (!socialLogin) {
+                await registerWithEmail(data.email, data.password);
+            }
             const firebaseUser = auth.currentUser;
             if (!firebaseUser) throw new Error('No se pudo obtener el usuario de Firebase');
             const token = await firebaseUser.getIdToken();
             await api.post('/auth/registro/voluntario',
-                { email: data.email, nombre: data.nombre },
+                { email: socialLogin ? socialEmail : data.email, nombre: data.nombre },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             setStep('completado');
@@ -74,24 +91,26 @@ const Register = () => {
 
     // ── Submit ayudado ─────────────────────────────────────────────────────
     const submitAyudado = async (data) => {
-        if (data.password !== data.confirmPassword) {
+        if (!socialLogin && data.password !== data.confirmPassword) {
             formAyudado.setError('confirmPassword', { message: 'Las contraseñas no coinciden' });
             return;
         }
         setLoading(true);
         try {
-            await registerWithEmail(data.email, data.password);
+            if (!socialLogin) {
+                await registerWithEmail(data.email, data.password);
+            }
             const firebaseUser = auth.currentUser;
             if (!firebaseUser) throw new Error('No se pudo obtener el usuario de Firebase');
             const token = await firebaseUser.getIdToken();
             await api.post('/auth/registro/ayudado', {
-                email:                   data.email,
-                nombre:                  data.nombre,
-                dni:                     data.dni,
-                nombreConyuge:           data.nombreConyuge,
-                fechaNacimientoConyuge:  data.fechaNacimientoConyuge,
-                lugarNacimientoConyuge:  data.lugarNacimientoConyuge,
-                cantidadIntegrantes:     data.cantidadIntegrantes,
+                email: socialLogin ? socialEmail : data.email,
+                nombre: data.nombre,
+                dni: data.dni,
+                nombreConyuge: data.nombreConyuge,
+                fechaNacimientoConyuge: data.fechaNacimientoConyuge,
+                lugarNacimientoConyuge: data.lugarNacimientoConyuge,
+                cantidadIntegrantes: data.cantidadIntegrantes,
             }, { headers: { Authorization: `Bearer ${token}` } });
             setStep('completado');
         } catch (error) {
@@ -215,21 +234,58 @@ const Register = () => {
                                     style={formVoluntario.formState.errors.nombre ? inputErrorStyle : inputStyle}
                                     {...formVoluntario.register('nombre', { required: 'El nombre es requerido' })} />
                             </Campo>
-                            <Campo label="Correo electrónico *" error={formVoluntario.formState.errors.email?.message}>
-                                <input type="email" placeholder="tucorreo@ejemplo.com"
-                                    style={formVoluntario.formState.errors.email ? inputErrorStyle : inputStyle}
-                                    {...formVoluntario.register('email', { required: 'El correo es requerido' })} />
+                            <Campo label="Correo electrónico *">
+                                <input
+                                    type="email"
+                                    disabled={socialLogin}
+                                    style={{
+                                        ...(formVoluntario.formState.errors.email
+                                            ? inputErrorStyle
+                                            : inputStyle),
+                                        background: socialLogin ? '#f3f4f6' : '#f9fafb'
+                                    }}
+                                    {...formVoluntario.register('email', {
+                                        required: 'El correo es requerido'
+                                    })}
+                                />
                             </Campo>
-                            <Campo label="Contraseña *" error={formVoluntario.formState.errors.password?.message}>
-                                <input type="password" placeholder="Mínimo 6 caracteres"
-                                    style={formVoluntario.formState.errors.password ? inputErrorStyle : inputStyle}
-                                    {...formVoluntario.register('password', { required: 'La contraseña es requerida', minLength: { value: 6, message: 'Mínimo 6 caracteres' } })} />
-                            </Campo>
-                            <Campo label="Confirmar contraseña *" error={formVoluntario.formState.errors.confirmPassword?.message}>
-                                <input type="password" placeholder="Repite tu contraseña"
-                                    style={formVoluntario.formState.errors.confirmPassword ? inputErrorStyle : inputStyle}
-                                    {...formVoluntario.register('confirmPassword', { required: 'Confirma tu contraseña' })} />
-                            </Campo>
+                            {!socialLogin && (
+                                <>
+                                    <Campo label="Contraseña *" error={formVoluntario.formState.errors.password?.message}>
+                                        <input
+                                            type="password"
+                                            placeholder="Mínimo 6 caracteres"
+                                            style={
+                                                formVoluntario.formState.errors.password
+                                                    ? inputErrorStyle
+                                                    : inputStyle
+                                            }
+                                            {...formVoluntario.register('password', {
+                                                required: 'La contraseña es requerida',
+                                                minLength: {
+                                                    value: 6,
+                                                    message: 'Mínimo 6 caracteres'
+                                                }
+                                            })}
+                                        />
+                                    </Campo>
+
+                                    <Campo label="Confirmar contraseña *" error={formVoluntario.formState.errors.confirmPassword?.message}>
+                                        <input
+                                            type="password"
+                                            placeholder="Repite tu contraseña"
+                                            style={
+                                                formVoluntario.formState.errors.confirmPassword
+                                                    ? inputErrorStyle
+                                                    : inputStyle
+                                            }
+                                            {...formVoluntario.register('confirmPassword', {
+                                                required: 'Confirma tu contraseña'
+                                            })}
+                                        />
+                                    </Campo>
+                                </>
+                            )}
 
                             <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer', marginTop: 4 }}>
                                 <input type="checkbox" style={{ marginTop: 3, flexShrink: 0 }}
@@ -346,23 +402,59 @@ const Register = () => {
 
                             {/* Email */}
                             <Campo label="Correo electrónico *" error={formAyudado.formState.errors.email?.message}>
-                                <input type="email" placeholder="tucorreo@ejemplo.com"
-                                    style={formAyudado.formState.errors.email ? inputErrorStyle : inputStyle}
-                                    {...formAyudado.register('email', { required: 'El correo es requerido' })} />
+                                <input
+                                    type="email"
+                                    disabled={socialLogin}
+                                    style={{
+                                        ...(formAyudado.formState.errors.email
+                                            ? inputErrorStyle
+                                            : inputStyle),
+                                        background: socialLogin ? '#f3f4f6' : '#f9fafb'
+                                    }}
+                                    {...formAyudado.register('email', {
+                                        required: 'El correo es requerido'
+                                    })}
+                                />
                             </Campo>
 
                             {/* Contraseña */}
-                            <Campo label="Contraseña *" error={formAyudado.formState.errors.password?.message}>
-                                <input type="password" placeholder="Mínimo 6 caracteres"
-                                    style={formAyudado.formState.errors.password ? inputErrorStyle : inputStyle}
-                                    {...formAyudado.register('password', { required: 'La contraseña es requerida', minLength: { value: 6, message: 'Mínimo 6 caracteres' } })} />
-                            </Campo>
+                            {!socialLogin && (
+                                <>
+                                    <Campo label="Contraseña *" error={formAyudado.formState.errors.password?.message}>
+                                        <input
+                                            type="password"
+                                            placeholder="Mínimo 6 caracteres"
+                                            style={
+                                                formAyudado.formState.errors.password
+                                                    ? inputErrorStyle
+                                                    : inputStyle
+                                            }
+                                            {...formAyudado.register('password', {
+                                                required: 'La contraseña es requerida',
+                                                minLength: {
+                                                    value: 6,
+                                                    message: 'Mínimo 6 caracteres'
+                                                }
+                                            })}
+                                        />
+                                    </Campo>
 
-                            <Campo label="Confirmar contraseña *" error={formAyudado.formState.errors.confirmPassword?.message}>
-                                <input type="password" placeholder="Repite tu contraseña"
-                                    style={formAyudado.formState.errors.confirmPassword ? inputErrorStyle : inputStyle}
-                                    {...formAyudado.register('confirmPassword', { required: 'Confirma tu contraseña' })} />
-                            </Campo>
+                                    <Campo label="Confirmar contraseña *" error={formAyudado.formState.errors.confirmPassword?.message}>
+                                        <input
+                                            type="password"
+                                            placeholder="Repite tu contraseña"
+                                            style={
+                                                formAyudado.formState.errors.confirmPassword
+                                                    ? inputErrorStyle
+                                                    : inputStyle
+                                            }
+                                            {...formAyudado.register('confirmPassword', {
+                                                required: 'Confirma tu contraseña'
+                                            })}
+                                        />
+                                    </Campo>
+                                </>
+                            )}
 
                             {/* Separador datos del hogar */}
                             <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 14, marginTop: 4 }}>
