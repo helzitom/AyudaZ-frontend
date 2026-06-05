@@ -411,7 +411,7 @@ const TodosUsuarios = () => {
                             </div>
 
                             <img
-                                src={`${import.meta.env.VITE_API_URL}/api/admin/verificacion-pobreza/imagen/${verificacionActual.usuario.id}`}
+                                src={`${import.meta.env.VITE_API_URL}/admin/verificacion-pobreza/imagen/${verificacionActual.usuario.id}`}
                                 alt="SISFOH"
                                 style={{
                                     width: '100%',
