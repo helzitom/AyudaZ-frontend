@@ -362,7 +362,7 @@ const Register = () => {
                             </Campo>
 
                             {/* ── DNI ── */}
-                            <Campo label="DNI del cónyuge *" error={formAyudado.formState.errors.dni?.message}>
+                            <Campo label="DNI del titular del hogar *" error={formAyudado.formState.errors.dni?.message}>
                                 <div style={{ position: 'relative' }}>
                                     <input
                                         placeholder="12345678"
@@ -463,19 +463,19 @@ const Register = () => {
                                 </p>
                             </div>
 
-                            <Campo label="Nombre del cónyuge" error={formAyudado.formState.errors.nombreConyuge?.message}>
-                                <input placeholder="Nombre del cónyuge (si aplica)"
+                            <Campo label="Nombre del titular del hogar" error={formAyudado.formState.errors.nombreConyuge?.message}>
+                                <input placeholder="Titular del hogar (si aplica)"
                                     style={inputStyle}
                                     {...formAyudado.register('nombreConyuge')} />
                             </Campo>
 
-                            <Campo label="Fecha de nacimiento del cónyuge" error={formAyudado.formState.errors.fechaNacimientoConyuge?.message}>
+                            <Campo label="Fecha de nacimiento del titular del hogar" error={formAyudado.formState.errors.fechaNacimientoConyuge?.message}>
                                 <input type="date"
                                     style={inputStyle}
                                     {...formAyudado.register('fechaNacimientoConyuge')} />
                             </Campo>
 
-                            <Campo label="Lugar de nacimiento del cónyuge" error={formAyudado.formState.errors.lugarNacimientoConyuge?.message}>
+                            <Campo label="Lugar de nacimiento del titular del hogar" error={formAyudado.formState.errors.lugarNacimientoConyuge?.message}>
                                 <input placeholder="Ciudad / Departamento"
                                     style={inputStyle}
                                     {...formAyudado.register('lugarNacimientoConyuge')} />
