@@ -64,61 +64,210 @@ const Register = () => {
 
     // ── Submit voluntario ──────────────────────────────────────────────────
     const submitVoluntario = async (data) => {
+
         if (!socialLogin && data.password !== data.confirmPassword) {
-            formVoluntario.setError('confirmPassword', { message: 'Las contraseñas no coinciden' });
+            formVoluntario.setError('confirmPassword', {
+                message: 'Las contraseñas no coinciden'
+            });
             return;
         }
+
         setLoading(true);
+
         try {
+
+            // 1. Crear usuario en Firebase si es registro normal
             if (!socialLogin) {
-                await registerWithEmail(data.email, data.password);
+                await registerWithEmail(
+                    data.email,
+                    data.password
+                );
             }
+
+
+            // 2. Obtener usuario actual de Firebase
             const firebaseUser = auth.currentUser;
-            if (!firebaseUser) throw new Error('No se pudo obtener el usuario de Firebase');
+
+
+            if (!firebaseUser) {
+                throw new Error(
+                    'No se pudo obtener el usuario de Firebase'
+                );
+            }
+
+
+            // 3. Obtener token Firebase
             const token = await firebaseUser.getIdToken();
-            await api.post('/auth/registro/voluntario',
-                { email: socialLogin ? socialEmail : data.email, nombre: data.nombre },
-                { headers: { Authorization: `Bearer ${token}` } }
+
+
+
+            // 4. Crear usuario base en PostgreSQL
+            // Esto genera el registro en tabla usuarios
+            await api.post(
+                '/auth/verify',
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
             );
+
+
+
+            // 5. Actualizar rol a voluntario
+            await api.post(
+                '/auth/registro/voluntario',
+                {
+                    email: socialLogin
+                        ? socialEmail
+                        : data.email,
+
+                    nombre: data.nombre
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+
+
+            // 6. Mostrar pantalla final
             setStep('completado');
+
+
         } catch (error) {
+
             console.error(error);
-            alert('Error al registrar voluntario: ' + (error.response?.data || error.message));
+
+            alert(
+                'Error al registrar voluntario: ' +
+                (
+                    error.response?.data ||
+                    error.message
+                )
+            );
+
+
         } finally {
+
             setLoading(false);
+
         }
     };
 
-    // ── Submit ayudado ─────────────────────────────────────────────────────
     const submitAyudado = async (data) => {
+
         if (!socialLogin && data.password !== data.confirmPassword) {
-            formAyudado.setError('confirmPassword', { message: 'Las contraseñas no coinciden' });
+            formAyudado.setError('confirmPassword', {
+                message: 'Las contraseñas no coinciden'
+            });
             return;
         }
+
+
         setLoading(true);
+
+
         try {
+
+
+            // 1. Crear usuario Firebase
             if (!socialLogin) {
-                await registerWithEmail(data.email, data.password);
+
+                await registerWithEmail(
+                    data.email,
+                    data.password
+                );
+
             }
+
+
+
+            // 2. Usuario Firebase actual
             const firebaseUser = auth.currentUser;
-            if (!firebaseUser) throw new Error('No se pudo obtener el usuario de Firebase');
-            const token = await firebaseUser.getIdToken();
-            await api.post('/auth/registro/ayudado', {
-                email: socialLogin ? socialEmail : data.email,
-                nombre: data.nombre,
-                dni: data.dni,
-                nombreConyuge: data.nombreConyuge,
-                fechaNacimientoConyuge: data.fechaNacimientoConyuge,
-                lugarNacimientoConyuge: data.lugarNacimientoConyuge,
-                cantidadIntegrantes: data.cantidadIntegrantes,
-            }, { headers: { Authorization: `Bearer ${token}` } });
-            setStep('completado');
+
+
+            if (!firebaseUser) {
+
+                throw new Error(
+                    "No se pudo obtener usuario Firebase"
+                );
+
+            }
+
+
+
+            // 3. Token
+            const token =
+                await firebaseUser.getIdToken();
+
+
+
+            // 4. Crear usuario base PostgreSQL
+            await api.post(
+                "/auth/verify",
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+
+
+            // 5. Convertir a ayudado
+            await api.post(
+                "/auth/registro/ayudado",
+                {
+                    email: socialLogin
+                        ? socialEmail
+                        : data.email,
+
+                    nombre: data.nombre,
+
+                    dni: data.dni,
+
+                    nombreConyuge: data.nombreConyuge,
+
+                    fechaNacimientoConyuge:
+                        data.fechaNacimientoConyuge,
+
+                    lugarNacimientoConyuge:
+                        data.lugarNacimientoConyuge,
+
+                    cantidadIntegrantes:
+                        data.cantidadIntegrantes
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            setStep("completado");
+
+
         } catch (error) {
+
             console.error(error);
-            alert('Error al solicitar ayuda: ' + (error.response?.data || error.message));
+
+            alert(
+                "Error al solicitar ayuda: " +
+                (
+                    error.response?.data ||
+                    error.message
+                )
+            );
+
         } finally {
             setLoading(false);
         }
+
     };
 
     const animations = `
