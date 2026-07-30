@@ -49,14 +49,12 @@ Permite a los usuarios registrarse, iniciar sesión, gestionar solicitudes de ay
 ```
 src
 │
-├── components
-├── pages
-├── services
-├── hooks
-├── context
-├── layouts
 ├── assets
-└── routes
+├── components
+├── contexts
+├── hooks
+├── services
+└── utils
 ```
 
 ---
