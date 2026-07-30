@@ -152,29 +152,9 @@ La interfaz fue desarrollada para dispositivos:
 
 ---
 
-## Capturas
-
-### Inicio
-
-*(Agregar imagen)*
-
-### Login
-
-*(Agregar imagen)*
-
-### Dashboard
-
-*(Agregar imagen)*
-
-### Gestión de usuarios
-
-*(Agregar imagen)*
-
----
-
 ## Despliegue
 
-Frontend desplegado mediante Vercel.
+Frontend desplegado mediante Netlify.
 
 ---
 
